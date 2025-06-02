@@ -16,7 +16,7 @@ class TableView():
         for col_index in range(columns):
             self.table.horizontalHeader().setSectionResizeMode(col_index, QtWidgets.QHeaderView.ResizeMode.Interactive if col_index != columns-1 else QtWidgets.QHeaderView.ResizeMode.Stretch)
 
-    def addRow(self, fields : list[str]):
+    def add_row(self, fields : list[str]):
         '''
             Adds a row with the list of strings as row items, e.g.: ["8.8.8.8", "53", "UDP"]
             Returns the row_index at which these were inserted.
@@ -26,7 +26,7 @@ class TableView():
 
         # Utilize empty rows at end or create new row
         for i in reversed(range(row_count)):
-            is_empty = self.isRowEmpty(i)
+            is_empty = self.is_row_empty(i)
 
             if not is_empty:
                 row_index = i+1
@@ -36,12 +36,12 @@ class TableView():
 
         i = 0
         for field in fields:
-            self.createItem(field, row_index, i)
+            self.create_item(field, row_index, i)
             i += 1
         
         return row_index
     
-    def modifyItem(self, row : int, col : int, new_text : str):
+    def modify_item(self, row : int, col : int, new_text : str):
         '''
             Sets the text of the item at the specified row, col coordinates to new_text.
             Useful with TableView.addRow which returns the index of the added row.
@@ -49,7 +49,7 @@ class TableView():
         self.table.item(row, col).setText(new_text)
 
 
-    def createItem(self, text : str, row_index : int, col_index : int):
+    def create_item(self, text : str, row_index : int, col_index : int):
         '''
             Creates a new text item at specified coordinates.
         '''
@@ -57,7 +57,7 @@ class TableView():
         item.setText(text)
         self.table.setItem(row_index, col_index, item)
 
-    def isRowEmpty(self, row_index : int):
+    def is_row_empty(self, row_index : int):
         '''
             Checks whether row at row_index is empty or has empty strings
         '''

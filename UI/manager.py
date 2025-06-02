@@ -2,9 +2,9 @@ from PySide6 import QtWidgets, QtGui, QtCore
 from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QLayout, QMenuBar
 from Components.tableView import TableView
-from Utils.getInterfaces import GetInterfaces
+from Utils.getInterfaces import get_interfaces
 from Utils.sniffer import Sniffer
-from Utils.getIpInfo import GetIpInfo
+from Utils.getIpInfo import get_ip_info
 import threading
 
 class Manager(QObject):
@@ -23,23 +23,23 @@ class Manager(QObject):
         self.layout.addWidget(sniff_notice)
 
         # :3
-        ifacesTable = TableView(3, ["Interface Name", "Description", "IP Address"])
+        ifaces_table = TableView(3, ["Interface Name", "Description", "IP Address"])
 
-        for ifaceInfo in GetInterfaces():
-            ifacesTable.addRow([ifaceInfo.name, ifaceInfo.description, ifaceInfo.ip])
+        for ifaceInfo in get_interfaces():
+            ifaces_table.add_row([ifaceInfo.name, ifaceInfo.description, ifaceInfo.ip])
 
-        ifacesTable.table.selectRow(0)
-        self.layout.addWidget(ifacesTable.table)
-        ifacesTable.table.resizeColumnsToContents()
+        ifaces_table.table.selectRow(0)
+        self.layout.addWidget(ifaces_table.table)
+        ifaces_table.table.resizeColumnsToContents()
         # :3c
 
         select_btn = QtWidgets.QPushButton()
         select_btn.setText("Select")
 
         def finish_selection():
-            selected_row = ifacesTable.table.selectedIndexes()[0].row()
-            selected_iface_item = ifacesTable.table.item(selected_row, 0)
-            selected_local_ip_item = ifacesTable.table.item(selected_row, 2)
+            selected_row = ifaces_table.table.selectedIndexes()[0].row()
+            selected_iface_item = ifaces_table.table.item(selected_row, 0)
+            selected_local_ip_item = ifaces_table.table.item(selected_row, 2)
 
             if not selected_iface_item:
                 print("No interface row selected, select a row and try again.")
@@ -51,8 +51,8 @@ class Manager(QObject):
             self.layout.removeWidget(sniff_notice)
             sniff_notice.deleteLater()
 
-            self.layout.removeWidget(ifacesTable.table)
-            ifacesTable.table.deleteLater()
+            self.layout.removeWidget(ifaces_table.table)
+            ifaces_table.table.deleteLater()
 
             self.layout.removeWidget(select_btn)
             select_btn.deleteLater()
@@ -60,6 +60,12 @@ class Manager(QObject):
             self.sniff_on_iface(selected_iface, selected_local_ip)
 
         select_btn.clicked.connect(finish_selection)
+
+        def on_enter_event(e : QtGui.QKeyEvent):
+            if e.key() == QtCore.Qt.Key.Key_Return:
+                finish_selection()
+
+        ifaces_table.table.keyPressEvent().connect(on_enter_event)
 
         self.layout.addWidget(select_btn)
 
@@ -70,8 +76,7 @@ class Manager(QObject):
     def sniff_on_iface(self, iface: str, local_ip: str):
         # Create widgets
         sniff_notice = QtWidgets.QLabel(text=f"Sniffing incoming UDP datagrams on interface {iface}")
-        sniff_table = TableView(7,
-                                ["Local Port", "Remote IP", "Remote Port", "Location", "ISP", "Flags", "Packet Count"])
+        sniff_table = TableView(7, ["Local Port", "Remote IP", "Remote Port", "Location", "ISP", "Flags", "Packet Count"])
 
         # Add widgets to layout
         self.layout.addWidget(sniff_notice)
@@ -85,9 +90,11 @@ class Manager(QObject):
 
         kill_action = QtGui.QAction(text="&Kill Sniffer", parent=sniffer_menu)
         iface_selection_action = QtGui.QAction(text="Go to iface &selection", parent=sniffer_menu)
+        resume_action = QtGui.QAction(text="&Resume", parent=sniffer_menu)
 
         sniffer_menu.addAction(kill_action)
         sniffer_menu.addAction(iface_selection_action)
+        sniffer_menu.addAction(resume_action)
 
         # Socket pair cache
         socket_pair_cache = []
@@ -115,7 +122,7 @@ class Manager(QObject):
                                       "185.56.65.169"]: return
 
                 #  Add new row to sniff_table
-                row_index = sniff_table.addRow([
+                row_index = sniff_table.add_row([
                     data.get("local_port"),
                     data.get("ip"),
                     data.get("port"),
@@ -127,7 +134,7 @@ class Manager(QObject):
 
                 def update_row_with_ip_info():
                     try:
-                        ip_api_data = GetIpInfo(data.get("ip"))
+                        ip_api_data = get_ip_info(data.get("ip"))
 
                         if not ip_api_data:
                             ip_api_data = {
@@ -138,10 +145,10 @@ class Manager(QObject):
                                 "proxy": False
                             }
 
-                        sniff_table.modifyItem(row_index, 3,
-                                               f"{ip_api_data.get("country")}, {ip_api_data.get("regionName")}, {ip_api_data.get("city")}")
-                        sniff_table.modifyItem(row_index, 4, ip_api_data.get("isp"))
-                        sniff_table.modifyItem(row_index, 5, "Proxy" if ip_api_data.get("proxy") else "")
+                        sniff_table.modify_item(row_index, 3,
+                                                f"{ip_api_data.get("country")}, {ip_api_data.get("regionName")}, {ip_api_data.get("city")}")
+                        sniff_table.modify_item(row_index, 4, ip_api_data.get("isp"))
+                        sniff_table.modify_item(row_index, 5, "Proxy" if ip_api_data.get("proxy") else "")
 
                     except Exception as e:
                         print(f"Thread exception when updating row {row_index} with info from ip-api: {e}")
@@ -162,17 +169,11 @@ class Manager(QObject):
         # Create sniffer and connect packet_received callback
         # TODO make sniffer accept only iface
         # TODO make sniffer accept args only when starting the sniffer to avoid having to re-instantiate it for every new iface
-        sniffer = Sniffer(iface, local_ip)
+        sniffer = Sniffer()
         sniffer.packet_received.connect(sniff_callback)
 
         # Start new sniffer thread
-        '''
-        threading.Thread(
-            target=sniffer.start_sniffing,
-            daemon=True
-        ).start()
-        '''
-        sniffer.start_sniffing()
+        sniffer.start_sniffing(iface, local_ip)
 
         # Connect Sniffer menu actions
         kill_action.triggered.connect(sniffer.stop_sniffing)
@@ -191,3 +192,8 @@ class Manager(QObject):
             self.prompt_iface_selection()
 
         iface_selection_action.triggered.connect(go_to_iface_selection)
+
+        def resume_sniffer():
+            sniffer.start_sniffing(iface, local_ip)
+
+        resume_action.triggered.connect(resume_sniffer)

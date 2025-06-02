@@ -1,6 +1,6 @@
 import requests
 
-def GetIpInfo(ip_address : str):
+def get_ip_info(ip_address : str):
     try:
         response = requests.get(f"http://ip-api.com/json/{ip_address}?fields=156185")
         response.raise_for_status()

@@ -5,30 +5,28 @@ class Sniffer(QObject):
     packet_received = Signal(dict)
     async_sniffer : AsyncSniffer
 
-    def __init__(self, iface_name : str, local_ip : str):
+    def __init__(self):
         super().__init__()
-        
-        # Properties
-        self.iface_name = iface_name
-        self.local_ip = local_ip
 
         # Flags
         self._is_sniffing = False
 
-    def start_sniffing(self):
+    def start_sniffing(self, iface_name : str, local_ip : str):
         '''
-            Runs the sniffer. Captures useful UDP packets. Emits Sniffer.packet_received singal when a suitable packet is found.
+            Runs the sniffer. Captures useful UDP packets. Emits Sniffer.packet_received signal when a suitable packet is found.
             Thread this method.
         '''
         if self._is_sniffing: return
         self._is_sniffing = True
+
+        print("Starting sniffer")
         
         try:
             self.async_sniffer = AsyncSniffer(
-                iface=self.iface_name,
-                #filter=f"(udp) and (dst {self.local_ip}) and (src not {self.local_ip}) and (src portrange not 0-1023)",
+                iface=iface_name,
+                filter=f"(udp) and (dst {local_ip}) and (src not {local_ip}) and (src portrange not 0-1023)",
                 #filter="udp",
-                filter=f"(dst {self.local_ip}) and (src not {self.local_ip})",
+                #filter=f"(dst {local_ip}) and (src not {local_ip})",
                 prn=self._packet_callback
             )
 
@@ -53,6 +51,8 @@ class Sniffer(QObject):
             Fires the packet_received signal if a suitable packet is received.
             Emits a dict with these fields: local_port : str, ip : str, port : str
         '''
+
+        print(packet)
 
         # Drop unwanted packets
         if packet.haslayer(DNS) or packet.haslayer(ARP):

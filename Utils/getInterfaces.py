@@ -1,6 +1,6 @@
 from scapy.all import get_working_ifaces
 
-def GetInterfaces():
+def get_interfaces():
     try:
         return get_working_ifaces()
     except Exception as e:
