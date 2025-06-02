@@ -1,7 +1,7 @@
 from PySide6 import QtWidgets
 
 class TableView():
-    def __init__(self, columns : int, description : [str]):
+    def __init__(self, columns : int, description : list[str]):
         '''
             Easier handling for displaying info in a table.
             TableView.table is the actual QTableWidget object.
@@ -16,7 +16,7 @@ class TableView():
         for col_index in range(columns):
             self.table.horizontalHeader().setSectionResizeMode(col_index, QtWidgets.QHeaderView.ResizeMode.Interactive if col_index != columns-1 else QtWidgets.QHeaderView.ResizeMode.Stretch)
 
-    def addRow(self, fields : [str]):
+    def addRow(self, fields : list[str]):
         '''
             Adds a row with the list of strings as row items, e.g.: ["8.8.8.8", "53", "UDP"]
             Returns the row_index at which these were inserted.

@@ -1,6 +1,5 @@
 from PySide6.QtCore import Signal, QObject
 from scapy.all import AsyncSniffer, UDP, IP, IPv6, DNS, ARP
-import time
 
 class Sniffer(QObject):
     packet_received = Signal(dict)
@@ -27,9 +26,9 @@ class Sniffer(QObject):
         try:
             self.async_sniffer = AsyncSniffer(
                 iface=self.iface_name,
-                filter=f"(udp) and (dst {self.local_ip}) and (src not {self.local_ip}) and (src portrange not 0-1023)",
+                #filter=f"(udp) and (dst {self.local_ip}) and (src not {self.local_ip}) and (src portrange not 0-1023)",
                 #filter="udp",
-                #filter=f"(dst {self.local_ip}) and (src not {self.local_ip})",
+                filter=f"(dst {self.local_ip}) and (src not {self.local_ip})",
                 prn=self._packet_callback
             )
 
