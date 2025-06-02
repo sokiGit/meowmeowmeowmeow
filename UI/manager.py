@@ -74,7 +74,7 @@ class Manager(QObject):
     def sniff_on_iface(self, iface: str, local_ip: str):
         # Create widgets
         sniff_notice = QtWidgets.QLabel(text=f"Sniffing incoming UDP datagrams on interface {iface}")
-        sniff_table = TableView(7, ["Local Port", "Remote IP", "Remote Port", "Location", "ISP", "Flags", "Packet Count"])
+        sniff_table = TableView(5, ["Remote IP", "Location", "ISP", "Flags", "Packet Count"])
 
         # Add widgets to layout
         self.layout.addWidget(sniff_notice)
@@ -95,35 +95,39 @@ class Manager(QObject):
         sniffer_menu.addAction(resume_action)
 
         # Socket pair cache
-        socket_pair_cache = []
+        socket_pair_cache = {}
 
         def sniff_callback(data: dict):
             # Retrieve cached socket pair
-            socket_pair_id = f"{data.get("local_port")}|{data.get("ip")}|{data.get("port")}"
+            #socket_pair_id = f"{data.get("local_port")}|{data.get("ip")}|{data.get("port")}"
+
+            socket_pair_id = data.get("ip")
 
             # Check whether socket pair has been cached
-            if socket_pair_id in socket_pair_cache:
+            if socket_pair_id in socket_pair_cache.keys():
                 # This socket pair is cached, return
+                socket_pair_cache[socket_pair_id]["packet_count"] += 1
+                sniff_table.modify_item(socket_pair_cache[socket_pair_id]["row"], 4, str(socket_pair_cache[socket_pair_id]["packet_count"]))
                 return
             else:
-                socket_pair_cache.append(socket_pair_id)
                 # Create row for new socket pair, cache the new socket pair.
 
                 # Don't show T2's servers
                 # TODO Find out T2 ip ranges and make it range-based
-                if data.get("ip") in ["192.81.241.191", "185.56.65.167", "185.56.65.171", "185.56.65.170",
-                                      "185.56.65.169"]: return
+                if data.get("ip") in ["192.81.241.191", "185.56.65.167", "185.56.65.171", "185.56.65.170", "185.56.65.169"]:
+                    return
 
                 #  Add new row to sniff_table
                 row_index = sniff_table.add_row([
-                    data.get("local_port"),
                     data.get("ip"),
-                    data.get("port"),
                     "N/A",
                     "N/A",
                     "",
                     "Untracked"
                 ])
+
+                # Add to cache
+                socket_pair_cache[socket_pair_id] = {"packet_count": 1, "row": row_index}
 
                 def update_row_with_ip_info():
                     try:
@@ -138,11 +142,10 @@ class Manager(QObject):
                                 "proxy": False
                             }
 
-                        sniff_table.modify_item(row_index, 3,
+                        sniff_table.modify_item(row_index, 1,
                                                 f"{ip_api_data.get("country")}, {ip_api_data.get("regionName")}, {ip_api_data.get("city")}")
-                        sniff_table.modify_item(row_index, 4, ip_api_data.get("isp"))
-                        sniff_table.modify_item(row_index, 5, "Proxy" if ip_api_data.get("proxy") else "")
-
+                        sniff_table.modify_item(row_index, 2, ip_api_data.get("isp"))
+                        sniff_table.modify_item(row_index, 3, "Proxy" if ip_api_data.get("proxy") else "")
                     except Exception as e:
                         print(f"Thread exception when updating row {row_index} with info from ip-api: {e}")
 
