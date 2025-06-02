@@ -11,10 +11,9 @@ class Sniffer(QObject):
         # Flags
         self._is_sniffing = False
 
-    def start_sniffing(self, iface_name : str, local_ip : str):
+    def start_sniffing(self, iface_name : str, bpf : str = ""):
         '''
             Runs the sniffer. Captures useful UDP packets. Emits Sniffer.packet_received signal when a suitable packet is found.
-            Thread this method.
         '''
         if self._is_sniffing: return
         self._is_sniffing = True
@@ -22,9 +21,10 @@ class Sniffer(QObject):
         try:
             self.async_sniffer = AsyncSniffer(
                 iface=iface_name,
+                filter=bpf,
                 #filter=f"(udp) and (dst {local_ip}) and (src not {local_ip}) and (src portrange not 0-1023)",
                 #filter="udp",
-                filter=f"(dst {local_ip}) and (src not {local_ip})",
+                #filter=f"(dst {local_ip}) and (src not {local_ip})",
                 prn=self._packet_callback
             )
 
@@ -38,7 +38,10 @@ class Sniffer(QObject):
         '''
             Sets the _is_sniffing flag to False and attempts to stop the asynchronous sniffer.
         '''
+        if not self._is_sniffing: return
+
         self._is_sniffing = False
+
         try:
             self.async_sniffer.stop()
         except Exception as e:
@@ -54,8 +57,6 @@ class Sniffer(QObject):
             return
 
         # Handle IPv4/6, or return
-        src_ip = "N/A"
-
         if packet.haslayer(IP): src_ip = packet[IP].src
         elif packet.haslayer(IPv6): src_ip = packet[IPv6].src
         else:

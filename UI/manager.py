@@ -1,9 +1,11 @@
 from PySide6 import QtWidgets, QtGui, QtCore
 from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QLayout, QMenuBar
+from scapy.arch import bpf
+
 from Components.tableView import TableView
 from Utils.getInterfaces import get_interfaces
-from Utils.sniffer import Sniffer
+from Sniffer.sniffer import Sniffer
 from Utils.getIpInfo import get_ip_info
 import threading
 
@@ -103,11 +105,6 @@ class Manager(QObject):
             if socket_pair_id in socket_pair_cache:
                 # This socket pair is cached, return
                 return
-                '''BROKEN CODE
-                new_packet_count = cached_data.get("packet_count") + 1
-                cached_data.set("packet_count", new_packet_count)
-                sniff_table.modifyItem(cached_data.get("row"), 6, str(new_packet_count))
-                '''
             else:
                 socket_pair_cache.append(socket_pair_id)
                 # Create row for new socket pair, cache the new socket pair.
@@ -154,22 +151,14 @@ class Manager(QObject):
                 except Exception as e:
                     print(f"Exception starting thread for row {row_index}: {e}")
 
-                '''BROKEN CODE
-                # Cache the socket pair
-                socket_pair_cache.set(socket_pair_id, {
-                    "row": row_index,
-                    "packet_count": 1
-                })
-                '''
-
         # Create sniffer and connect packet_received callback
-        # TODO make sniffer accept only iface
-        # TODO make sniffer accept args only when starting the sniffer to avoid having to re-instantiate it for every new iface
+        # TODO make sniffer accept only iface, not local ip
         sniffer = Sniffer()
         sniffer.packet_received.connect(sniff_callback)
 
         # Start new sniffer thread
-        sniffer.start_sniffing(iface, local_ip)
+        sniffer.start_sniffing(iface, f"(udp) and (dst {local_ip}) and (src not {local_ip}) and (src portrange not 0-1023)")
+        #sniffer.start_sniffing(iface_name=iface, bpf = "")
 
         # Connect Sniffer menu actions
         kill_action.triggered.connect(sniffer.stop_sniffing)
