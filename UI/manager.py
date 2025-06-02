@@ -28,18 +28,18 @@ class Manager(QObject):
         for ifaceInfo in get_interfaces():
             ifaces_table.add_row([ifaceInfo.name, ifaceInfo.description, ifaceInfo.ip])
 
-        ifaces_table.table.selectRow(0)
-        self.layout.addWidget(ifaces_table.table)
-        ifaces_table.table.resizeColumnsToContents()
+        ifaces_table.selectRow(0)
+        self.layout.addWidget(ifaces_table)
+        ifaces_table.resizeColumnsToContents()
         # :3c
 
         select_btn = QtWidgets.QPushButton()
         select_btn.setText("Select")
 
         def finish_selection():
-            selected_row = ifaces_table.table.selectedIndexes()[0].row()
-            selected_iface_item = ifaces_table.table.item(selected_row, 0)
-            selected_local_ip_item = ifaces_table.table.item(selected_row, 2)
+            selected_row = ifaces_table.selectedIndexes()[0].row()
+            selected_iface_item = ifaces_table.item(selected_row, 0)
+            selected_local_ip_item = ifaces_table.item(selected_row, 2)
 
             if not selected_iface_item:
                 print("No interface row selected, select a row and try again.")
@@ -51,8 +51,8 @@ class Manager(QObject):
             self.layout.removeWidget(sniff_notice)
             sniff_notice.deleteLater()
 
-            self.layout.removeWidget(ifaces_table.table)
-            ifaces_table.table.deleteLater()
+            self.layout.removeWidget(ifaces_table)
+            ifaces_table.deleteLater()
 
             self.layout.removeWidget(select_btn)
             select_btn.deleteLater()
@@ -61,11 +61,7 @@ class Manager(QObject):
 
         select_btn.clicked.connect(finish_selection)
 
-        def on_enter_event(e : QtGui.QKeyEvent):
-            if e.key() == QtCore.Qt.Key.Key_Return:
-                finish_selection()
-
-        ifaces_table.table.keyPressEvent().connect(on_enter_event)
+        ifaces_table.enterPressed.connect(finish_selection)
 
         self.layout.addWidget(select_btn)
 
@@ -80,7 +76,7 @@ class Manager(QObject):
 
         # Add widgets to layout
         self.layout.addWidget(sniff_notice)
-        self.layout.addWidget(sniff_table.table)
+        self.layout.addWidget(sniff_table)
 
         # Request window title change
         self.request_change_title.emit(f"iface: {iface}, local_ip: {local_ip}")
@@ -183,11 +179,11 @@ class Manager(QObject):
 
             self.layout.removeWidget(sniffer_menu)
             self.layout.removeWidget(sniff_notice)
-            self.layout.removeWidget(sniff_table.table)
+            self.layout.removeWidget(sniff_table)
 
             sniffer_menu.deleteLater()
             sniff_notice.deleteLater()
-            sniff_table.table.deleteLater()
+            sniff_table.deleteLater()
 
             self.prompt_iface_selection()
 
