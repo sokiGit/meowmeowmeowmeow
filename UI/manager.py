@@ -194,3 +194,7 @@ class Manager(QObject):
             self.request_change_title.emit(f"[PAUSED] iface: {iface}, local_ip: {local_ip}")
 
         pause_resume_action.triggered.connect(pause_sniffer, type=QtCore.Qt.ConnectionType.SingleShotConnection)
+
+        # Select first row (to allow arrow selection)
+        sniff_table.selectRow(0)
+        QtCore.QTimer.singleShot(0, sniff_table.setFocus) # What the F#@K

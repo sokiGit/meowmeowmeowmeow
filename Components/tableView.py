@@ -1,7 +1,6 @@
 from PySide6 import QtWidgets
 from PySide6.QtCore import Signal, Qt
 
-
 class TableView(QtWidgets.QTableWidget):
     enterPressed = Signal()
 
