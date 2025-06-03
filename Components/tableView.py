@@ -1,6 +1,7 @@
 from PySide6 import QtWidgets
 from PySide6.QtCore import Signal, Qt
 
+
 class TableView(QtWidgets.QTableWidget):
     enterPressed = Signal()
 
@@ -19,9 +20,15 @@ class TableView(QtWidgets.QTableWidget):
         for col_index in range(columns):
             self.horizontalHeader().setSectionResizeMode(col_index, QtWidgets.QHeaderView.ResizeMode.Interactive if col_index != columns-1 else QtWidgets.QHeaderView.ResizeMode.Stretch)
 
+        self._arrow_selection_allowed = False
+
     def keyPressEvent(self, event, /):
         if event.key() == Qt.Key.Key_Return:
             self.enterPressed.emit()
+        elif event.key() == Qt.Key.Key_Down:
+            self.selectRow(min(self.selectedIndexes()[0].row()+1, self.rowCount()-1))
+        elif event.key() == Qt.Key.Key_Up:
+            self.selectRow(max(self.selectedIndexes()[0].row()-1, 0))
 
     def add_row(self, fields : list[str]):
         '''
