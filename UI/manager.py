@@ -87,9 +87,11 @@ class Manager(QObject):
 
         pause_resume_action = QtGui.QAction(text="&Pause Sniffer", parent=sniffer_menu)
         iface_selection_action = QtGui.QAction(text="Go to iface &selection", parent=sniffer_menu)
+        clear_table_action = QtGui.QAction(text="&Clear table", parent=sniffer_menu)
 
         sniffer_menu.addAction(pause_resume_action)
         sniffer_menu.addAction(iface_selection_action)
+        sniffer_menu.addAction(clear_table_action)
 
         # Socket pair cache
         socket_pair_cache = {}
@@ -194,6 +196,16 @@ class Manager(QObject):
             self.request_change_title.emit(f"[PAUSED] iface: {iface}, local_ip: {local_ip}")
 
         pause_resume_action.triggered.connect(pause_sniffer, type=QtCore.Qt.ConnectionType.SingleShotConnection)
+
+        def clear_sniffer_table():
+            sniff_table.setRowCount(0)
+
+            socket_pair_cache.clear()
+
+            sniff_table.insertRow(0)
+            sniff_table.selectRow(0)
+
+        clear_table_action.triggered.connect(clear_sniffer_table)
 
         # Select first row (to allow arrow selection)
         sniff_table.selectRow(0)
