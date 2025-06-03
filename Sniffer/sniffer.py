@@ -22,17 +22,16 @@ class Sniffer(QObject):
             self.async_sniffer = AsyncSniffer(
                 iface=iface_name,
                 filter=bpf,
-                #filter=f"(udp) and (dst {local_ip}) and (src not {local_ip}) and (src portrange not 0-1023)",
-                #filter="udp",
-                #filter=f"(dst {local_ip}) and (src not {local_ip})",
                 prn=self._packet_callback
             )
 
             self.async_sniffer.start()
+
+            self._is_sniffing = True
         except PermissionError as e: print(f"Sniffing permission error: {e}")
         except Exception as e: print(f"Sniffing exception: {e}")
-        finally:
-            self._is_sniffing = False
+        #finally:
+        #    self._is_sniffing = False
         
     def stop_sniffing(self):
         '''
