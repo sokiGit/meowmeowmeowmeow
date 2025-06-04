@@ -12,9 +12,9 @@ class Sniffer(QObject):
         self._is_sniffing = False
 
     def start_sniffing(self, iface_name : str, bpf : str = ""):
-        '''
+        """
             Runs the sniffer. Captures useful UDP packets. Emits Sniffer.packet_received signal when a suitable packet is found.
-        '''
+        """
         if self._is_sniffing: return
         self._is_sniffing = True
         
@@ -34,23 +34,24 @@ class Sniffer(QObject):
         #    self._is_sniffing = False
         
     def stop_sniffing(self):
-        '''
+        """
             Sets the _is_sniffing flag to False and attempts to stop the asynchronous sniffer.
-        '''
+        """
         if not self._is_sniffing: return
 
         self._is_sniffing = False
 
         try:
             self.async_sniffer.stop()
+            print("Stopped sniffing.")
         except Exception as e:
             print(f"Error trying AsyncSniffer.stop(): {e}")
 
     def _packet_callback(self, packet):
-        '''
+        """
             Fires the packet_received signal if a suitable packet is received.
             Emits a dict with these fields: local_port : str, ip : str, port : str
-        '''
+        """
         # Drop unwanted packets
         if packet.haslayer(DNS) or packet.haslayer(ARP):
             return

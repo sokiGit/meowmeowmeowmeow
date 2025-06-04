@@ -3,8 +3,9 @@ from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QLayout, QMenuBar
 
 from Components.tableView import TableView
+from Sniffer.SniffManager import SniffManager
 from Utils.getInterfaces import get_interfaces
-from Sniffer.sniffer import Sniffer
+from Sniffer.Sniffer import Sniffer
 from Utils.getIpInfo import get_ip_info
 import threading
 
@@ -124,8 +125,6 @@ class Manager(QObject):
 
         def sniff_callback(data: dict):
             # Retrieve cached socket pair
-            #socket_pair_id = f"{data.get("local_port")}|{data.get("ip")}|{data.get("port")}"
-
             socket_pair_id = data.get("ip")
 
             # Check whether socket pair has been cached
@@ -143,13 +142,7 @@ class Manager(QObject):
                     return
 
                 #  Add new row to sniff_table
-                row_index = sniff_table.add_row([
-                    data.get("ip"),
-                    "N/A",
-                    "N/A",
-                    "",
-                    "1"
-                ])
+                row_index = sniff_table.add_row([data.get("ip"), "N/A", "N/A", "", "1"])
 
                 # Add to cache
                 socket_pair_cache[socket_pair_id] = {"packet_count": 1, "row": row_index}
@@ -179,19 +172,16 @@ class Manager(QObject):
                 except Exception as e:
                     print(f"Exception starting thread for row {row_index}: {e}")
 
-        # Create sniffer and connect packet_received callback
-        # TODO make sniffer accept only iface, not local ip
-        sniffer = Sniffer()
-        sniffer.packet_received.connect(sniff_callback)
+        # Create sniff_manager and connect packet_received callback
+        sniff_manager = SniffManager(iface_name=iface, bpf=bpf)
+        sniff_manager.packet_received.connect(sniff_callback)
 
         # Start new sniffer thread
-        #bpf = f"(udp) and (dst {local_ip}) and (src not {local_ip}) and (src portrange not 0-1023)"
-        #bpf = ""
-        sniffer.start_sniffing(iface_name=iface, bpf = bpf)
+        sniff_manager.start_sniffing()
 
         # Connect Sniffer menu actions
         def go_to_iface_selection():
-            sniffer.stop_sniffing()
+            sniff_manager.stop_sniffing()
 
             self.layout.removeWidget(sniffer_menu)
             self.layout.removeWidget(sniff_notice)
@@ -206,7 +196,7 @@ class Manager(QObject):
         iface_selection_action.triggered.connect(go_to_iface_selection)
 
         def resume_sniffer():
-            sniffer.start_sniffing(iface, bpf=bpf)
+            sniff_manager.start_sniffing()
 
             pause_resume_action.setText("&Pause Sniffer")
             pause_resume_action.triggered.connect(pause_sniffer, type=QtCore.Qt.ConnectionType.SingleShotConnection)
@@ -214,7 +204,7 @@ class Manager(QObject):
             self.request_change_title.emit(f"iface: {iface}, local_ip: {local_ip}")
 
         def pause_sniffer():
-            sniffer.stop_sniffing()
+            sniff_manager.stop_sniffing()
 
             pause_resume_action.setText("&Resume Sniffer")
             pause_resume_action.triggered.connect(resume_sniffer, type=QtCore.Qt.ConnectionType.SingleShotConnection)

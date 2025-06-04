@@ -7,5 +7,5 @@ def get_ip_info(ip_address : str):
         json = response.json()
         return json
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching IP info: {e}")
+        print(f"Error fetching IP info for {ip_address}: {e}")
         return None
