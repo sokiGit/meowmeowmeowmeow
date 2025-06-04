@@ -23,6 +23,16 @@ class Manager(QObject):
             text="Select an interface by clicking a row in the table, then click the Select button.")
         self.layout.addWidget(sniff_notice)
 
+        bpf_preset_dropdown = QtWidgets.QComboBox()
+        bpf_preset_dropdown.addItem("None")
+        bpf_preset_dropdown.addItem("GTA V")
+        bpf_preset_dropdown.addItem("UDP")
+        bpf_preset_dropdown.addItem("TCP")
+        bpf_preset_dropdown.addItem("Non-Self")
+        bpf_preset_dropdown.setCurrentIndex(0)
+
+        self.layout.addWidget(bpf_preset_dropdown)
+
         # :3
         ifaces_table = TableView(3, ["Interface Name", "Description", "IP Address"])
 
@@ -52,13 +62,27 @@ class Manager(QObject):
             self.layout.removeWidget(sniff_notice)
             sniff_notice.deleteLater()
 
+            self.layout.removeWidget(bpf_preset_dropdown)
+            bpf_preset_dropdown.deleteLater()
+
             self.layout.removeWidget(ifaces_table)
             ifaces_table.deleteLater()
 
             self.layout.removeWidget(select_btn)
             select_btn.deleteLater()
 
-            self.sniff_on_iface(selected_iface, selected_local_ip)
+            bpf_presets = {
+                "None": "",
+                "GTA V": f"(udp) and (dst {selected_local_ip}) and (src not {selected_local_ip}) and (src portrange not 0-1023)",
+                "TCP": "tcp",
+                "UDP": "udp",
+                "Non-Self": f"(src not {selected_local_ip}) and (src not 127.0.0.1)" #TODO use 127.XXX.XXX.XXX range for loopback
+            }
+
+            selected_bpf_presset = bpf_preset_dropdown.currentText()
+            bpf = "" if not selected_bpf_presset in bpf_presets.keys() else bpf_presets[selected_bpf_presset]
+
+            self.sniff_on_iface(selected_iface, selected_local_ip, bpf)
 
         select_btn.clicked.connect(finish_selection)
 
@@ -66,13 +90,15 @@ class Manager(QObject):
 
         self.layout.addWidget(select_btn)
 
+        QtCore.QTimer.singleShot(0, lambda: ifaces_table.selectRow(0))
+
     def create_topbar(self):
         self.topbar = QMenuBar(nativeMenuBar=True)
         self.layout.addWidget(self.topbar)
 
-    def sniff_on_iface(self, iface: str, local_ip: str):
+    def sniff_on_iface(self, iface: str, local_ip: str, bpf: str = ""):
         # Create widgets
-        sniff_notice = QtWidgets.QLabel(text=f"Sniffing incoming UDP datagrams on interface {iface}")
+        sniff_notice = QtWidgets.QLabel(text=f"Capturing packets on {iface}, filter: {bpf}")
         sniff_table = TableView(5, ["Remote IP", "Location", "ISP", "Flags", "Packet Count"])
 
         # Add widgets to layout
@@ -122,7 +148,7 @@ class Manager(QObject):
                     "N/A",
                     "N/A",
                     "",
-                    "Untracked"
+                    "1"
                 ])
 
                 # Add to cache
@@ -160,7 +186,7 @@ class Manager(QObject):
 
         # Start new sniffer thread
         #bpf = f"(udp) and (dst {local_ip}) and (src not {local_ip}) and (src portrange not 0-1023)"
-        bpf = ""
+        #bpf = ""
         sniffer.start_sniffing(iface_name=iface, bpf = bpf)
 
         # Connect Sniffer menu actions
