@@ -9,8 +9,7 @@ from Utils.Iface import Iface
 def get_ifaces() -> list[Iface]:
     ifaces: list[Iface] = []
     for iface in get_working_ifaces():
-        print(iface.ips)
-        ifaces.append(Iface(iface.name, iface.description, []))
+        ifaces.append(Iface(iface.name, iface.description, iface.ips[4]+iface.ips[6]))
 
     return ifaces
 

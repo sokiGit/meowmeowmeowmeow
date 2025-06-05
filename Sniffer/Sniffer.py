@@ -2,8 +2,8 @@ from PySide6.QtCore import Signal, QObject
 from scapy.all import AsyncSniffer, UDP, IP, IPv6, DNS, ARP
 
 class Sniffer(QObject):
-    packet_received = Signal(dict)
-    async_sniffer : AsyncSniffer
+    packet_received: Signal(dict) = Signal(dict)
+    async_sniffer: AsyncSniffer
 
     def __init__(self):
         super().__init__()
@@ -43,7 +43,6 @@ class Sniffer(QObject):
 
         try:
             self.async_sniffer.stop()
-            print("Stopped sniffing.")
         except Exception as e:
             print(f"Error trying AsyncSniffer.stop(): {e}")
 

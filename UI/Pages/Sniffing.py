@@ -18,24 +18,23 @@ class Sniffing(Page):
     def _construct_callback(self):
         iface = SnifferConfig.iface.get_name()
         bpf = SnifferConfig.bpf
+        local_ip = SnifferConfig.iface.get_ips()[0]
 
         # Create widgets
         sniff_notice = QtWidgets.QLabel(text=f"Capturing packets on {iface}, filter: {bpf}")
         sniff_table = TableView(5, ["Remote IP", "Location", "ISP", "Flags", "Packet Count"])
+        topbar = QMenuBar(nativeMenuBar=True)
 
         # Add widgets to layout
+        self._parent.addWidget(topbar)
         self._parent.addWidget(sniff_notice)
         self._parent.addWidget(sniff_table)
 
         # Request window title change
-        #self.request_change_title.emit(f"iface: {iface}, local_ip: {local_ip}")
+        self.change_title.emit(f"iface: {iface}, local_ip: {SnifferConfig.iface.get_ips()[0]}")
 
         # Add topbar menu item for the Sniffer
-
-        self.topbar = QMenuBar(nativeMenuBar=True)
-        self._parent.addWidget(self.topbar)
-
-        sniffer_menu = self.topbar.addMenu("&Sniffer")
+        sniffer_menu = topbar.addMenu("&Sniffer")
 
         pause_resume_action = QtGui.QAction(text="&Pause Sniffer", parent=sniffer_menu)
         iface_selection_action = QtGui.QAction(text="Go to iface &selection", parent=sniffer_menu)
@@ -88,7 +87,7 @@ class Sniffing(Page):
                             }
 
                         sniff_table.modify_item(row_index, 1,
-                                                f"{ip_api_data.get("country")}, {ip_api_data.get("regionName")}, {ip_api_data.get("city")}")
+                                                f"{ip_api_data.get("country")}, {ip_api_data.get("regionName")},{ip_api_data.get("city")}")
                         sniff_table.modify_item(row_index, 2, ip_api_data.get("isp"))
                         sniff_table.modify_item(row_index, 3, "Proxy" if ip_api_data.get("proxy") else "")
                     except Exception as e:
@@ -102,6 +101,7 @@ class Sniffing(Page):
         # Create sniff_manager and connect packet_received callback
         sniff_manager = SniffManager(iface_name=iface, bpf=bpf)
         sniff_manager.packet_received.connect(sniff_callback)
+        self._sniff_manager = sniff_manager
 
         # Start new sniffer thread
         sniff_manager.start_sniffing()
@@ -129,7 +129,7 @@ class Sniffing(Page):
             pause_resume_action.setText("&Pause Sniffer")
             pause_resume_action.triggered.connect(pause_sniffer, type=QtCore.Qt.ConnectionType.SingleShotConnection)
 
-            #self.request_change_title.emit(f"iface: {iface}, local_ip: {local_ip}")
+            self.change_title.emit(f"iface: {iface}, local_ip: {local_ip}")
 
         def pause_sniffer():
             sniff_manager.stop_sniffing()
@@ -137,7 +137,7 @@ class Sniffing(Page):
             pause_resume_action.setText("&Resume Sniffer")
             pause_resume_action.triggered.connect(resume_sniffer, type=QtCore.Qt.ConnectionType.SingleShotConnection)
 
-            #self.request_change_title.emit(f"[PAUSED] iface: {iface}, local_ip: {local_ip}")
+            self.change_title.emit(f"[PAUSED] iface: {iface}, local_ip: {local_ip}")
 
         pause_resume_action.triggered.connect(pause_sniffer, type=QtCore.Qt.ConnectionType.SingleShotConnection)
 
@@ -156,4 +156,4 @@ class Sniffing(Page):
         QtCore.QTimer.singleShot(0, sniff_table.setFocus)  # What the F#@K
 
     def _remove_callback(self):
-        pass
+        self._sniff_manager.stop_sniffing()

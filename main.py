@@ -15,11 +15,11 @@ if __name__ == "__main__":
     app.setWindowIcon(QtGui.QIcon("Icons/meowmeowmeowmeow.png"))
 
     widget = MyWidget()
-    #widget.manager.request_change_title.connect(lambda txt: widget.setWindowTitle(f"MeowMeowMeowMeow{(" | "+txt) if txt or txt.strip() == "" else ""}"))
     widget.resize(800, 600)
     widget.show()
 
     pager = Pager(widget.layout)
+    pager.change_title.connect(lambda txt: widget.setWindowTitle(f"MeowMeowMeowMeow{(' | '+txt) if txt or txt.strip() == '' else ''}"))
     pager.navigate_to(SelectIface)
 
     sys.exit(app.exec())

@@ -1,3 +1,5 @@
+from PySide6.QtCore import Signal, QObject
+
 import UI.Page
 """
 Is supposed to make it easy (in code) to navigate between different pages of the app.
@@ -12,11 +14,13 @@ from typing import Type
 from PySide6.QtWidgets import QVBoxLayout
 
 
-class Pager:
+class Pager(QObject):
     _content_layout: QVBoxLayout
     _current_page: UI.Page.Page | None = None
+    change_title: Signal(str) = Signal(str)
 
     def __init__(self, parent: QVBoxLayout):
+        super().__init__()
         self._content_layout = parent
 
     def navigate_to(self, page: Type[UI.Page.Page]):
@@ -25,6 +29,7 @@ class Pager:
         self.exit_current_page()
 
         if issubclass(page, Page):
+            self.change_title.emit(page.__name__)
             self._current_page = page(self)
             self._current_page.call_construct()
         else:
@@ -32,6 +37,7 @@ class Pager:
             self._current_page = None
 
     def exit_current_page(self):
+        self.change_title.emit("")
         if self._current_page is not None:
             self._current_page.call_remove()
 

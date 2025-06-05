@@ -20,11 +20,7 @@ class SelectIface(Page):
         self._parent.addWidget(sniff_notice)
 
         bpf_preset_dropdown = QtWidgets.QComboBox()
-        bpf_preset_dropdown.addItem("None")
-        bpf_preset_dropdown.addItem("GTA V")
-        bpf_preset_dropdown.addItem("UDP")
-        bpf_preset_dropdown.addItem("TCP")
-        bpf_preset_dropdown.addItem("Non-Self")
+        for txt in ["None", "GTA V", "UDP", "TCP", "Non-Self"]: bpf_preset_dropdown.addItem(txt)
         bpf_preset_dropdown.setCurrentIndex(0)
 
         self._parent.addWidget(bpf_preset_dropdown)
@@ -33,7 +29,8 @@ class SelectIface(Page):
         ifaces_table = TableView(3, ["Interface Name", "Description", "IP Addresses"])
 
         for ifaceInfo in get_ifaces():
-            ifaces_table.add_row([ifaceInfo.get_name(), ifaceInfo.get_description(), ifaceInfo.get_ips().__str__()])
+            ifaces_table.add_row([ifaceInfo.get_name(), ifaceInfo.get_description(), ifaceInfo.get_ips().__str__()
+                                 .removeprefix("[").removesuffix("]").replace("'", "")])
 
         ifaces_table.selectRow(0)
         self._parent.addWidget(ifaces_table)
@@ -56,7 +53,8 @@ class SelectIface(Page):
                 print(f"Iface {selected_iface_item.text()} not found by IfaceManager.")
 
             iface_ips = selected_iface.get_ips()
-            selected_local_ip = iface_ips[0] if iface_ips.__len__() > 0 else "" # TODO either implement for list or remove completely
+            # TODO implement choosing or remove completely
+            selected_local_ip = iface_ips[0] if iface_ips is not EMPTY_LIST else ""
 
             self._parent.removeWidget(sniff_notice)
             sniff_notice.deleteLater()
@@ -76,25 +74,27 @@ class SelectIface(Page):
                 "TCP": "tcp",
                 "UDP": "udp",
                 "Non-Self": f"(src not {selected_local_ip}) and (src not 127.0.0.1)"
-                # TODO use 127.XXX.XXX.XXX range for loopback
+                #TODO use 127.XXX.XXX.XXX range for loopback
             }
 
             selected_bpf_preset = bpf_preset_dropdown.currentText()
             bpf = "" if not selected_bpf_preset in bpf_presets.keys() else bpf_presets[selected_bpf_preset]
 
-            #self.sniff_on_iface(selected_iface, selected_local_ip, bpf)
             SnifferConfig.iface = selected_iface
             SnifferConfig.bpf = bpf
 
             self._pager.navigate_to(Sniffing)
 
         select_btn.clicked.connect(finish_selection)
-
         ifaces_table.enterPressed.connect(finish_selection)
 
         self._parent.addWidget(select_btn)
 
         QtCore.QTimer.singleShot(0, lambda: ifaces_table.selectRow(0))
+
+        # Add to self to be usable in _remove_callback
+        self._select_btn = select_btn
+        self._ifaces_table = ifaces_table
 
     def _remove_callback(self):
         pass
