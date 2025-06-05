@@ -1,3 +1,4 @@
+import UI
 """
 Works with the Pager to provide an easily manageable way to show/hide/navigate pages.
 call_construct makes the page show up (everything needs to be instantiated)
@@ -11,21 +12,31 @@ from UI.Maid import clear_children
 
 
 class Page:
-    _construct_callback: Callable[[QVBoxLayout], None]
+    _construct_callback: Callable[[], None]
     _remove_callback: Callable[[], None]
-    _current_parent: QVBoxLayout | None
+    _pager: 'UI.Pager.Pager'
+    _parent: QVBoxLayout
+    def __init__(self, pager: 'UI.Pager.Pager'):
+        self._pager = pager
+        self._parent = pager.content_layout
+        self._is_constructed = False
 
-    def __init__(self, construct_callable: Callable[[QVBoxLayout], None], remove_callable: Callable[[], None]):
-        self._construct_callback = construct_callable
-        self._remove_callback = remove_callable
+    _is_constructed: bool
 
-    def call_construct(self, parent: QVBoxLayout):
+    def _construct_callback(self):
+        pass
+
+    def _remove_callback(self):
+        pass
+
+    def call_construct(self):
         """
         Calls the _construct_callback which is supposed to instantiate new widgets inside the :param parent:.
-        Sets _current_parent to :param parent: for the self.call_remove function to be able to remove all children.
+        Sets _content_layout to :param parent: for the self.call_remove function to be able to remove all children.
         """
-        self._current_parent = parent
-        self._construct_callback(parent)
+        self._construct_callback()
+
+        self._is_constructed = True
 
     def call_remove(self):
         """
@@ -33,7 +44,8 @@ class Page:
         To make sure no stray children remain, the function attempts to forcibly remove any remaining children.
         """
         self._remove_callback()
-        if self._current_parent is not None:
-            clear_children(self._current_parent)
 
-        self._current_parent = None
+        if self._is_constructed and self._parent is not None:
+            clear_children(self._parent)
+
+        self._is_constructed = False

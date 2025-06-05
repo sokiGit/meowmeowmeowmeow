@@ -1,115 +1,40 @@
-from PySide6 import QtWidgets, QtGui, QtCore
-from PySide6.QtCore import QObject
-from PySide6.QtWidgets import QLayout, QMenuBar
+import threading
+
+from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6.QtWidgets import QMenuBar
 
 from Components.tableView import TableView
 from Sniffer.SniffManager import SniffManager
-from Utils.getInterfaces import get_interfaces
-from Sniffer.Sniffer import Sniffer
+from UI.Page import Page
+from UI import Pages
+from Utils.SnifferConfig import SnifferConfig
 from Utils.getIpInfo import get_ip_info
-import threading
 
-class Manager(QObject):
-    layout : QLayout
-    topbar : QMenuBar
 
-    request_change_title = QtCore.Signal(str)
+class Sniffing(Page):
+    def __init__(self, pager: Page):
+        super().__init__(pager)
 
-    def __init__(self, layout : QLayout):
-        super().__init__()
-        self.layout = layout
+    def _construct_callback(self):
+        iface = SnifferConfig.iface.get_name()
+        bpf = SnifferConfig.bpf
 
-    def prompt_iface_selection(self):
-        sniff_notice = QtWidgets.QLabel(
-            text="Select an interface by clicking a row in the table, then click the Select button.")
-        self.layout.addWidget(sniff_notice)
-
-        bpf_preset_dropdown = QtWidgets.QComboBox()
-        bpf_preset_dropdown.addItem("None")
-        bpf_preset_dropdown.addItem("GTA V")
-        bpf_preset_dropdown.addItem("UDP")
-        bpf_preset_dropdown.addItem("TCP")
-        bpf_preset_dropdown.addItem("Non-Self")
-        bpf_preset_dropdown.setCurrentIndex(0)
-
-        self.layout.addWidget(bpf_preset_dropdown)
-
-        # :3
-        ifaces_table = TableView(3, ["Interface Name", "Description", "IP Address"])
-
-        for ifaceInfo in get_interfaces():
-            ifaces_table.add_row([ifaceInfo.name, ifaceInfo.description, ifaceInfo.ip])
-
-        ifaces_table.selectRow(0)
-        self.layout.addWidget(ifaces_table)
-        ifaces_table.resizeColumnsToContents()
-        # :3c
-
-        select_btn = QtWidgets.QPushButton()
-        select_btn.setText("Select")
-
-        def finish_selection():
-            selected_row = ifaces_table.selectedIndexes()[0].row()
-            selected_iface_item = ifaces_table.item(selected_row, 0)
-            selected_local_ip_item = ifaces_table.item(selected_row, 2)
-
-            if not selected_iface_item:
-                print("No interface row selected, select a row and try again.")
-                return
-
-            selected_iface = selected_iface_item.text()
-            selected_local_ip = selected_local_ip_item.text()
-
-            self.layout.removeWidget(sniff_notice)
-            sniff_notice.deleteLater()
-
-            self.layout.removeWidget(bpf_preset_dropdown)
-            bpf_preset_dropdown.deleteLater()
-
-            self.layout.removeWidget(ifaces_table)
-            ifaces_table.deleteLater()
-
-            self.layout.removeWidget(select_btn)
-            select_btn.deleteLater()
-
-            bpf_presets = {
-                "None": "",
-                "GTA V": f"(udp) and (dst {selected_local_ip}) and (src not {selected_local_ip}) and (src portrange not 0-1023)",
-                "TCP": "tcp",
-                "UDP": "udp",
-                "Non-Self": f"(src not {selected_local_ip}) and (src not 127.0.0.1)" #TODO use 127.XXX.XXX.XXX range for loopback
-            }
-
-            selected_bpf_presset = bpf_preset_dropdown.currentText()
-            bpf = "" if not selected_bpf_presset in bpf_presets.keys() else bpf_presets[selected_bpf_presset]
-
-            self.sniff_on_iface(selected_iface, selected_local_ip, bpf)
-
-        select_btn.clicked.connect(finish_selection)
-
-        ifaces_table.enterPressed.connect(finish_selection)
-
-        self.layout.addWidget(select_btn)
-
-        QtCore.QTimer.singleShot(0, lambda: ifaces_table.selectRow(0))
-
-    def create_topbar(self):
-        self.topbar = QMenuBar(nativeMenuBar=True)
-        self.layout.addWidget(self.topbar)
-
-    def sniff_on_iface(self, iface: str, local_ip: str, bpf: str = ""):
         # Create widgets
         sniff_notice = QtWidgets.QLabel(text=f"Capturing packets on {iface}, filter: {bpf}")
         sniff_table = TableView(5, ["Remote IP", "Location", "ISP", "Flags", "Packet Count"])
 
         # Add widgets to layout
-        self.layout.addWidget(sniff_notice)
-        self.layout.addWidget(sniff_table)
+        self._parent.addWidget(sniff_notice)
+        self._parent.addWidget(sniff_table)
 
         # Request window title change
-        self.request_change_title.emit(f"iface: {iface}, local_ip: {local_ip}")
+        #self.request_change_title.emit(f"iface: {iface}, local_ip: {local_ip}")
 
         # Add topbar menu item for the Sniffer
+
+        self.topbar = QMenuBar(nativeMenuBar=True)
+        self._parent.addWidget(self.topbar)
+
         sniffer_menu = self.topbar.addMenu("&Sniffer")
 
         pause_resume_action = QtGui.QAction(text="&Pause Sniffer", parent=sniffer_menu)
@@ -131,14 +56,16 @@ class Manager(QObject):
             if socket_pair_id in socket_pair_cache.keys():
                 # This socket pair is cached, return
                 socket_pair_cache[socket_pair_id]["packet_count"] += 1
-                sniff_table.modify_item(socket_pair_cache[socket_pair_id]["row"], 4, str(socket_pair_cache[socket_pair_id]["packet_count"]))
+                sniff_table.modify_item(socket_pair_cache[socket_pair_id]["row"], 4,
+                                        str(socket_pair_cache[socket_pair_id]["packet_count"]))
                 return
             else:
                 # Create row for new socket pair, cache the new socket pair.
 
                 # Don't show T2's servers
                 # TODO Find out T2 ip ranges and make it range-based
-                if data.get("ip") in ["192.81.241.191", "185.56.65.167", "185.56.65.171", "185.56.65.170", "185.56.65.169"]:
+                if data.get("ip") in ["192.81.241.191", "185.56.65.167", "185.56.65.171", "185.56.65.170",
+                                      "185.56.65.169"]:
                     return
 
                 #  Add new row to sniff_table
@@ -169,8 +96,8 @@ class Manager(QObject):
 
                 try:
                     threading.Thread(target=update_row_with_ip_info, daemon=True).start()
-                except Exception as e:
-                    print(f"Exception starting thread for row {row_index}: {e}")
+                except Exception as ex:
+                    print(f"Exception starting thread for row {row_index}: {ex}")
 
         # Create sniff_manager and connect packet_received callback
         sniff_manager = SniffManager(iface_name=iface, bpf=bpf)
@@ -183,15 +110,16 @@ class Manager(QObject):
         def go_to_iface_selection():
             sniff_manager.stop_sniffing()
 
-            self.layout.removeWidget(sniffer_menu)
-            self.layout.removeWidget(sniff_notice)
-            self.layout.removeWidget(sniff_table)
+            self._parent.removeWidget(sniffer_menu)
+            self._parent.removeWidget(sniff_notice)
+            self._parent.removeWidget(sniff_table)
 
             sniffer_menu.deleteLater()
             sniff_notice.deleteLater()
             sniff_table.deleteLater()
 
-            self.prompt_iface_selection()
+            # self.prompt_iface_selection()
+            self._pager.navigate_to(Pages.SelectIface.SelectIface)
 
         iface_selection_action.triggered.connect(go_to_iface_selection)
 
@@ -201,7 +129,7 @@ class Manager(QObject):
             pause_resume_action.setText("&Pause Sniffer")
             pause_resume_action.triggered.connect(pause_sniffer, type=QtCore.Qt.ConnectionType.SingleShotConnection)
 
-            self.request_change_title.emit(f"iface: {iface}, local_ip: {local_ip}")
+            #self.request_change_title.emit(f"iface: {iface}, local_ip: {local_ip}")
 
         def pause_sniffer():
             sniff_manager.stop_sniffing()
@@ -209,7 +137,7 @@ class Manager(QObject):
             pause_resume_action.setText("&Resume Sniffer")
             pause_resume_action.triggered.connect(resume_sniffer, type=QtCore.Qt.ConnectionType.SingleShotConnection)
 
-            self.request_change_title.emit(f"[PAUSED] iface: {iface}, local_ip: {local_ip}")
+            #self.request_change_title.emit(f"[PAUSED] iface: {iface}, local_ip: {local_ip}")
 
         pause_resume_action.triggered.connect(pause_sniffer, type=QtCore.Qt.ConnectionType.SingleShotConnection)
 
@@ -225,4 +153,7 @@ class Manager(QObject):
 
         # Select first row (to allow arrow selection)
         sniff_table.selectRow(0)
-        QtCore.QTimer.singleShot(0, sniff_table.setFocus) # What the F#@K
+        QtCore.QTimer.singleShot(0, sniff_table.setFocus)  # What the F#@K
+
+    def _remove_callback(self):
+        pass

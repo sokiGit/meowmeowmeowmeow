@@ -13,3 +13,11 @@ def get_ifaces() -> list[Iface]:
         ifaces.append(Iface(iface.name, iface.description, []))
 
     return ifaces
+
+def get_iface_from_name(name: str) -> Iface | None:
+    #TODO improve performance (caching?)
+    for iface in get_ifaces():
+        if iface.get_name() == name:
+            return iface
+
+    return None
