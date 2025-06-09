@@ -7,7 +7,7 @@ from UI.Pages.Sniffing import Sniffing
 from UI.Page import Page
 from UI.Pager import Pager
 from Utils.IfaceManager import get_ifaces, get_iface_from_name
-from Utils.SnifferConfig import SnifferConfig
+from Sniffer.SnifferConfig import SnifferConfig
 
 
 class SelectIface(Page):

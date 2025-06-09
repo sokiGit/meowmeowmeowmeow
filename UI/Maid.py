@@ -9,6 +9,10 @@ def clear_children(layout: QVBoxLayout):
         child = layout.takeAt(i)
         widget = child.widget()
         if widget is not None:
+            try:
+                layout.removeWidget(widget)
+            except ValueError as e:
+                print(f"Error removing widget {widget}: {e}")
             widget.deleteLater()
         else:
             sub_layout = layout.layout()

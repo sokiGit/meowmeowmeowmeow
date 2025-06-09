@@ -7,7 +7,7 @@ from Components.tableView import TableView
 from Sniffer.SniffManager import SniffManager
 from UI.Page import Page
 from UI import Pages
-from Utils.SnifferConfig import SnifferConfig
+from Sniffer.SnifferConfig import SnifferConfig
 from Utils.getIpInfo import get_ip_info
 
 
@@ -16,7 +16,7 @@ class Sniffing(Page):
         super().__init__(pager)
 
     def _construct_callback(self):
-        iface = SnifferConfig.iface.get_name()
+        iface = SnifferConfig.iface
         bpf = SnifferConfig.bpf
         local_ip = SnifferConfig.iface.get_ips()[0]
 
@@ -31,7 +31,7 @@ class Sniffing(Page):
         self._parent.addWidget(sniff_table)
 
         # Request window title change
-        self.change_title.emit(f"iface: {iface}, local_ip: {SnifferConfig.iface.get_ips()[0]}")
+        self.change_title.emit(f"iface: {iface.get_name()}, local_ip: {SnifferConfig.iface.get_ips()[0]}")
 
         # Add topbar menu item for the Sniffer
         sniffer_menu = topbar.addMenu("&Sniffer")
@@ -99,7 +99,7 @@ class Sniffing(Page):
                     print(f"Exception starting thread for row {row_index}: {ex}")
 
         # Create sniff_manager and connect packet_received callback
-        sniff_manager = SniffManager(iface_name=iface, bpf=bpf)
+        sniff_manager = SniffManager()
         sniff_manager.packet_received.connect(sniff_callback)
         self._sniff_manager = sniff_manager
 
@@ -109,16 +109,6 @@ class Sniffing(Page):
         # Connect Sniffer menu actions
         def go_to_iface_selection():
             sniff_manager.stop_sniffing()
-
-            self._parent.removeWidget(sniffer_menu)
-            self._parent.removeWidget(sniff_notice)
-            self._parent.removeWidget(sniff_table)
-
-            sniffer_menu.deleteLater()
-            sniff_notice.deleteLater()
-            sniff_table.deleteLater()
-
-            # self.prompt_iface_selection()
             self._pager.navigate_to(Pages.SelectIface.SelectIface)
 
         iface_selection_action.triggered.connect(go_to_iface_selection)
@@ -129,7 +119,7 @@ class Sniffing(Page):
             pause_resume_action.setText("&Pause Sniffer")
             pause_resume_action.triggered.connect(pause_sniffer, type=QtCore.Qt.ConnectionType.SingleShotConnection)
 
-            self.change_title.emit(f"iface: {iface}, local_ip: {local_ip}")
+            self.change_title.emit(f"iface: {iface.get_name()}, local_ip: {local_ip}")
 
         def pause_sniffer():
             sniff_manager.stop_sniffing()
@@ -137,7 +127,7 @@ class Sniffing(Page):
             pause_resume_action.setText("&Resume Sniffer")
             pause_resume_action.triggered.connect(resume_sniffer, type=QtCore.Qt.ConnectionType.SingleShotConnection)
 
-            self.change_title.emit(f"[PAUSED] iface: {iface}, local_ip: {local_ip}")
+            self.change_title.emit(f"[PAUSED] iface: {iface.get_name()}, local_ip: {local_ip}")
 
         pause_resume_action.triggered.connect(pause_sniffer, type=QtCore.Qt.ConnectionType.SingleShotConnection)
 

@@ -21,3 +21,6 @@ class Iface:
 
     def get_ips(self) -> list[str]:
         return self._ips
+
+    def __str__(self):
+        return f"Iface {self.get_name()}, description: {self.get_description()}, ips: {self.get_ips()}"

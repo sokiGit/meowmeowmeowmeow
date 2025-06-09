@@ -4,10 +4,12 @@ Provides a simple way to handle advanced controls of the sniffer.
 from PySide6.QtCore import Signal, QObject
 
 from Sniffer.Sniffer import Sniffer
+from Sniffer.SnifferConfig import SnifferConfig
+from Utils.Iface import Iface
 
 
 class SniffManager(QObject):
-    _iface: str
+    _iface: Iface | None = None
     _bpf: str
     _sniffing: bool
     _sniffer: Sniffer
@@ -15,10 +17,10 @@ class SniffManager(QObject):
     sniffing_stopped: Signal() = Signal()
     sniffing_started: Signal() = Signal()
 
-    def __init__(self, iface_name: str, bpf: str = ""):
+    def __init__(self, ):
         super().__init__()
-        self._iface = iface_name
-        self._bpf = bpf
+        self._iface = SnifferConfig.iface
+        self._bpf = SnifferConfig.bpf
         self._sniffing = False
         self._sniffer = Sniffer()
         self.packet_received = self._sniffer.packet_received
@@ -35,8 +37,9 @@ class SniffManager(QObject):
         self._sniffing = False
         self.sniffing_stopped.emit()
 
-    def change_iface(self, iface: str):
+    def change_iface(self, iface: Iface):
         self._iface = iface
+        SnifferConfig.iface = iface
 
         if self._sniffing:
             # Restart sniffer if it is currently running

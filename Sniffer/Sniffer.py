@@ -1,6 +1,9 @@
 from PySide6.QtCore import Signal, QObject
 from scapy.all import AsyncSniffer, UDP, IP, IPv6, DNS, ARP
 
+from Utils.Iface import Iface
+
+
 class Sniffer(QObject):
     packet_received: Signal(dict) = Signal(dict)
     async_sniffer: AsyncSniffer
@@ -11,7 +14,7 @@ class Sniffer(QObject):
         # Flags
         self._is_sniffing = False
 
-    def start_sniffing(self, iface_name : str, bpf : str = ""):
+    def start_sniffing(self, iface : Iface, bpf : str = ""):
         """
             Runs the sniffer. Captures useful UDP packets. Emits Sniffer.packet_received signal when a suitable packet is found.
         """
@@ -20,7 +23,7 @@ class Sniffer(QObject):
         
         try:
             self.async_sniffer = AsyncSniffer(
-                iface=iface_name,
+                iface=iface.get_name(),
                 filter=bpf,
                 prn=self._packet_callback
             )
@@ -30,8 +33,6 @@ class Sniffer(QObject):
             self._is_sniffing = True
         except PermissionError as e: print(f"Sniffing permission error: {e}")
         except Exception as e: print(f"Sniffing exception: {e}")
-        #finally:
-        #    self._is_sniffing = False
         
     def stop_sniffing(self):
         """
